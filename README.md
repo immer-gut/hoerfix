@@ -21,7 +21,13 @@ Release-EXE:
 Hoerfix.exe
 ```
 
-Setup:
+Setup-EXE:
+
+```text
+Hoerfix-Setup.exe
+```
+
+Script-Setup:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Install-Hoerfix.ps1

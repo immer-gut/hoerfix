@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Hoerfix-Setup</AssemblyName>
+    <Product>Hoerfix Setup</Product>
+    <Description>Hoerfix Windows installer.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="payload\Hoerfix.exe" LogicalName="Hoerfix.exe" />
+  </ItemGroup>
+
+</Project>

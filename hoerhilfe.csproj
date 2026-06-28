@@ -15,4 +15,10 @@
     <PackageReference Include="NAudio" Version="2.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="installer\**\*.cs" />
+    <EmbeddedResource Remove="installer\**\*" />
+    <None Remove="installer\**\*" />
+  </ItemGroup>
+
 </Project>
