@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <AssemblyName>Hoerfix</AssemblyName>
+    <Product>Hoerfix</Product>
+    <Description>Windows hearing support tool with per-ear profiles and system audio equalization.</Description>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.3.0" />
+  </ItemGroup>
+
+</Project>
