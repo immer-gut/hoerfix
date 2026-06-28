@@ -86,6 +86,7 @@ public partial class Form1 : Form
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9F);
         BackColor = Color.FromArgb(245, 247, 250);
+        Icon = LoadAppIcon();
         KeyDown += FormKeyDown;
         _wizardTimer.Tick += WizardTimerTick;
         Resize += FormResize;
@@ -136,7 +137,7 @@ public partial class Form1 : Form
         _trayMenu.Items.Add(new ToolStripSeparator());
         _trayMenu.Items.Add(exitItem);
 
-        _notifyIcon.Icon = SystemIcons.Application;
+        _notifyIcon.Icon = LoadAppIcon();
         _notifyIcon.Text = "Hoerfix";
         _notifyIcon.ContextMenuStrip = _trayMenu;
         _notifyIcon.Visible = true;
@@ -166,6 +167,14 @@ public partial class Form1 : Form
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
         Activate();
+    }
+
+    private static Icon LoadAppIcon()
+    {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "assets", "hoerfix.ico");
+        return File.Exists(iconPath)
+            ? new Icon(iconPath)
+            : Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
     }
 
     private void BuildBands()

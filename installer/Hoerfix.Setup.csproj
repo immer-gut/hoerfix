@@ -9,6 +9,7 @@
     <AssemblyName>Hoerfix-Setup</AssemblyName>
     <Product>Hoerfix Setup</Product>
     <Description>Hoerfix Windows installer.</Description>
+    <ApplicationIcon>..\assets\hoerfix.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
