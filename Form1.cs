@@ -50,6 +50,7 @@ public partial class Form1 : Form
     private readonly Label _gateLabel = new();
     private readonly Button _toggleSupportButton = new();
     private readonly Button _testOutputButton = new();
+    private readonly Button _refreshAudioDevicesButton = new();
     private readonly Label _levelLabel = new();
     private readonly Label _statusLabel = new();
     private readonly ToolTip _toolTip = new() { AutoPopDelay = 15000, InitialDelay = 250, ReshowDelay = 100 };
@@ -481,16 +482,22 @@ public partial class Form1 : Form
         StyleSecondaryButton(_testOutputButton);
         _testOutputButton.Click += (_, _) => PlayOutputTestTone();
 
+        _refreshAudioDevicesButton.Text = "Geraete aktualisieren";
+        StyleSecondaryButton(_refreshAudioDevicesButton);
+        _refreshAudioDevicesButton.Click += (_, _) => RefreshAudioDevices();
+
         _levelLabel.Dock = DockStyle.Fill;
         _levelLabel.TextAlign = ContentAlignment.MiddleLeft;
         _levelLabel.ForeColor = Color.FromArgb(65, 74, 86);
         _levelLabel.Text = "Pegel: noch kein Signal gemessen";
 
-        var actionRow = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 2 };
-        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        var actionRow = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 3 };
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33));
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33));
         actionRow.Controls.Add(_toggleSupportButton, 0, 0);
         actionRow.Controls.Add(_testOutputButton, 1, 0);
+        actionRow.Controls.Add(_refreshAudioDevicesButton, 2, 0);
 
         layout.Controls.Add(CreateMutedLabel("Modus"), 0, 0);
         layout.Controls.Add(_sourceModeCombo, 1, 0);
@@ -693,6 +700,19 @@ public partial class Form1 : Form
     {
         PopulateSourceDevices();
         PopulateOutputDevices();
+    }
+
+    private void RefreshAudioDevices()
+    {
+        try
+        {
+            PopulateAudioDevices();
+            SetStatus($"Audiogeraete aktualisiert: {_sourceDeviceCombo.Items.Count} Quellen, {_outputDeviceCombo.Items.Count} Ausgaben gefunden.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Audiogeraete konnten nicht aktualisiert werden:\r\n{ex.Message}", "Hoerhilfe", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private void PopulateSourceDevices()
@@ -945,6 +965,7 @@ public partial class Form1 : Form
 
         _toggleSupportButton.Enabled = !_wizardRunning && hasSource && hasOutput;
         _testOutputButton.Enabled = !_wizardRunning && !_supportRunning && hasOutput;
+        _refreshAudioDevicesButton.Enabled = !busy;
 
         _profileCombo.Enabled = !busy;
         _saveProfileButton.Enabled = !busy && _profileCombo.Items.Count > 0;
@@ -974,6 +995,7 @@ public partial class Form1 : Form
         _toolTip.SetToolTip(_outputDeviceCombo, "Zielgeraet, auf dem der verstaerkte Ton ausgegeben wird.");
         _toolTip.SetToolTip(_toggleSupportButton, "Startet oder stoppt die Live-Verstaerkung.");
         _toolTip.SetToolTip(_testOutputButton, "Spielt einen kurzen Testton auf dem ausgewaehlten Ausgabegeraet.");
+        _toolTip.SetToolTip(_refreshAudioDevicesButton, "Liest Mikrofone, Systemton-Quellen und Ausgabegeraete neu ein.");
         _toolTip.SetToolTip(_masterGainTrack, "Gesamtlautstaerke nach der Hoerkurven-Korrektur. Positiv ist lauter, negativ leiser.");
         _toolTip.SetToolTip(_masterGainLabel, "Aktuelle Gesamtverstaerkung in Dezibel.");
         _toolTip.SetToolTip(_gateTrack, "Rauschschwelle: sehr leise Eingangssignale unter diesem Wert werden abgesenkt.");
