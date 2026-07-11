@@ -126,7 +126,7 @@ public partial class Form1 : Form
 
     private void ConfigureTray()
     {
-        var openItem = new ToolStripMenuItem("Oeffnen", null, (_, _) => RestoreFromTray());
+        var openItem = new ToolStripMenuItem("Oeffnen", null, (_, _) => RestoreMainWindow());
         var stopItem = new ToolStripMenuItem("Hoerunterstuetzung stoppen", null, (_, _) => StopSupport());
         var exitItem = new ToolStripMenuItem("Beenden", null, (_, _) =>
         {
@@ -142,7 +142,7 @@ public partial class Form1 : Form
         _notifyIcon.Text = "Hoerfix";
         _notifyIcon.ContextMenuStrip = _trayMenu;
         _notifyIcon.Visible = true;
-        _notifyIcon.DoubleClick += (_, _) => RestoreFromTray();
+        _notifyIcon.DoubleClick += (_, _) => RestoreMainWindow();
     }
 
     private void FormResize(object? sender, EventArgs e)
@@ -162,11 +162,12 @@ public partial class Form1 : Form
         _notifyIcon.ShowBalloonTip(1200);
     }
 
-    private void RestoreFromTray()
+    public void RestoreMainWindow()
     {
         Show();
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
+        BringToFront();
         Activate();
     }
 

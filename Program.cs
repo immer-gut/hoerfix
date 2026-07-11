@@ -3,6 +3,7 @@ namespace hoerhilfe;
 static class Program
 {
     private const string SingleInstanceMutexName = @"Local\Hoerfix.SingleInstance";
+    private const string ShowWindowEventName = @"Local\Hoerfix.ShowWindow";
 
     /// <summary>
     ///  The main entry point for the application.
@@ -21,14 +22,63 @@ static class Program
 
         if (!isFirstInstance)
         {
-            MessageBox.Show(
-                "Hoerfix laeuft bereits.",
-                "Hoerfix",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            SignalRunningInstance();
             return;
         }
 
-        Application.Run(new Form1());
+        using var showWindowEvent = new EventWaitHandle(
+            initialState: false,
+            mode: EventResetMode.AutoReset,
+            name: ShowWindowEventName);
+
+        var form = new Form1();
+        var showWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
+            showWindowEvent,
+            (_, _) => RestoreRunningInstance(form),
+            state: null,
+            millisecondsTimeOutInterval: Timeout.Infinite,
+            executeOnlyOnce: false);
+
+        try
+        {
+            Application.Run(form);
+        }
+        finally
+        {
+            showWindowRegistration.Unregister(null);
+        }
+    }
+
+    private static void SignalRunningInstance()
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                using var showWindowEvent = EventWaitHandle.OpenExisting(ShowWindowEventName);
+                showWindowEvent.Set();
+                return;
+            }
+            catch (WaitHandleCannotBeOpenedException)
+            {
+                Thread.Sleep(100);
+            }
+        }
+    }
+
+    private static void RestoreRunningInstance(Form1 form)
+    {
+        if (form.IsDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            form.BeginInvoke(form.RestoreMainWindow);
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 }

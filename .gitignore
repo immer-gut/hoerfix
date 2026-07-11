@@ -1,6 +1,7 @@
 bin/
 obj/
 dist/
+release-v*/
 installer/payload/
 *.user
 *.suo
