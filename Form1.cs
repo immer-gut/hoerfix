@@ -23,6 +23,7 @@ public partial class Form1 : Form
         "Hoerhilfe");
     private static readonly string ProfilePath = Path.Combine(ProfileDirectory, "profil.json");
     private static readonly string ProfilesDirectory = Path.Combine(ProfileDirectory, "Profiles");
+    private static readonly string StatePath = Path.Combine(ProfileDirectory, "state.json");
     private const string DefaultProfileName = "Standard";
 
     private readonly BindingList<HearingBand> _bands = [];
@@ -1332,7 +1333,7 @@ public partial class Form1 : Form
                 profileNames.Add(DefaultProfileName);
             }
 
-            var selectedName = selectProfileName;
+            var selectedName = selectProfileName ?? ReadLastProfileName();
             if (string.IsNullOrWhiteSpace(selectedName) || !profileNames.Contains(selectedName, StringComparer.OrdinalIgnoreCase))
             {
                 selectedName = profileNames.Contains(DefaultProfileName, StringComparer.OrdinalIgnoreCase)
@@ -1461,6 +1462,7 @@ public partial class Form1 : Form
             ApplyTheme();
             _curveGrid.Refresh();
             _curvePanel.Invalidate();
+            SaveLastProfileName(_currentProfileName);
             SetStatus($"Profil geladen: {_currentProfileName}");
         }
         catch
@@ -1586,6 +1588,49 @@ public partial class Form1 : Form
         return Path.Combine(ProfilesDirectory, $"{SanitizeProfileFileName(profileName)}.json");
     }
 
+    private static string? ReadLastProfileName()
+    {
+        try
+        {
+            if (!File.Exists(StatePath))
+            {
+                return null;
+            }
+
+            var state = JsonSerializer.Deserialize<AppState>(File.ReadAllText(StatePath));
+            return string.IsNullOrWhiteSpace(state?.LastProfileName)
+                ? null
+                : state.LastProfileName.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SaveLastProfileName(string profileName)
+    {
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(ProfileDirectory);
+            var state = new AppState { LastProfileName = profileName.Trim() };
+            File.WriteAllText(StatePath, JsonSerializer.Serialize(state, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            }));
+        }
+        catch
+        {
+            // Last-profile state is convenience only; profile loading still falls back safely.
+        }
+    }
+
     private static string SanitizeProfileFileName(string profileName)
     {
         var safeName = Regex.Replace(profileName.Trim(), @"[^\w\-. ]+", "_");
@@ -1682,6 +1727,11 @@ public partial class Form1 : Form
         public string? SourceDeviceId { get; set; }
         public string? OutputDeviceId { get; set; }
         public string Theme { get; set; } = "light";
+    }
+
+    private sealed class AppState
+    {
+        public string? LastProfileName { get; set; }
     }
 
     private sealed class HearingBand

@@ -6,6 +6,7 @@ Hoerfix is a small Windows desktop hearing-support tool for local PC audio.
 
 - Measure a per-ear hearing curve with a wizard.
 - Store multiple named profiles.
+- Load the last used profile on startup when it still exists.
 - Remember profile-specific mode, source device, output device, theme, gain, and noise gate.
 - Process microphone or system audio with per-channel EQ.
 - Minimize to the Windows system tray.

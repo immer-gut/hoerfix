@@ -23,6 +23,16 @@ Profiles are JSON files under:
 Each profile stores hearing bands, master gain, noise gate, source mode, source device id,
 output device id, and theme.
 
+The last selected profile name is stored separately in:
+
+```text
+%APPDATA%\Hoerhilfe\state.json
+```
+
+On startup, Hoerfix tries to load that profile first. If the state file is missing,
+invalid, or points to a deleted profile, startup falls back to the default profile
+or the first available profile.
+
 ## UI State
 
 The UI locks conflicting controls while audio processing or the measurement wizard is active.

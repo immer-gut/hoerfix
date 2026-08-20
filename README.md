@@ -8,6 +8,7 @@ Kleines Windows-Tool zur Hoerunterstuetzung am PC.
 - schlecht hoerbare Frequenzen pro Ohr automatisch verstaerken
 - Mikrofon oder Systemton von Filmen/Browsern verarbeiten
 - mehrere Profile speichern, auswaehlen und loeschen
+- zuletzt verwendetes Profil beim Start automatisch laden
 - Modus, Quelle, Ausgabe, Theme, Gesamt-Gain und Rauschschwelle pro Profil merken
 - Hell-/Dunkelmodus
 - Minimieren in den Windows-Systray
@@ -56,6 +57,7 @@ Profile liegen unter:
 
 - [Projekt-Notizen](docs/PROJECT_NOTES.md)
 - [Architektur](docs/ARCHITECTURE.md)
+- [Test- und Release-Anweisungen](docs/TESTING.md)
 
 ## Sicherheit
 
