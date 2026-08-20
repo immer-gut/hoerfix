@@ -22,3 +22,4 @@ Hoerfix is a small Windows desktop hearing-support tool for local PC audio.
 
 Release builds use single-file framework-dependent Windows publish output.
 Setup is provided as PowerShell scripts that copy `Hoerfix.exe` into the user profile and create shortcuts.
+The release script also produces a normal setup bundle ZIP as a fallback when Windows blocks the packed standalone setup EXE.

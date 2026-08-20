@@ -28,6 +28,12 @@ Setup-EXE:
 Hoerfix-Setup.exe
 ```
 
+Setup-Bundle:
+
+```text
+Hoerfix-Setup-bundle.zip
+```
+
 Script-Setup:
 
 ```powershell

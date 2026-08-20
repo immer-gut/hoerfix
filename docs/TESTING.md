@@ -28,8 +28,11 @@ Erwartete Dateien:
 
 ```text
 dist\Hoerfix-Setup.exe
+dist\Hoerfix-Setup-bundle.zip
 dist\Hoerfix-win-x64.zip
 ```
+
+Wenn Windows Defender die gepackte `Hoerfix-Setup.exe` lokal blockiert, das Setup-Bundle fuer den Release verwenden. Das Bundle enthaelt die normale .NET-Setup-Ausgabe und muss vor dem Start entpackt werden.
 
 ## Manueller Profil-Check
 
