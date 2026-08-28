@@ -1,21 +1,22 @@
 # Hoerfix Setup
 
-Der Release-ZIP enthaelt `Hoerfix.exe` und diese Setup-Skripte.
+Normale Nutzer laden im GitHub Release nur diese Datei herunter:
 
-Installieren:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Install-Hoerfix.ps1
+```text
+Hoerfix-Setup.exe
 ```
 
-Deinstallieren:
+Setup starten, `Installieren` klicken, fertig. Der Installer erstellt eine
+Startmenue-Verknuepfung und optional eine Desktop-Verknuepfung.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Uninstall-Hoerfix.ps1
-```
-
-Standard-Installationsziel:
+Installationsziel:
 
 ```text
 %LOCALAPPDATA%\Programs\Hoerfix
+```
+
+Deinstallation:
+
+```text
+Windows Einstellungen -> Apps -> Installierte Apps -> Hoerfix -> Deinstallieren
 ```

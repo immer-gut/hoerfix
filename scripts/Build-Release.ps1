@@ -5,9 +5,7 @@ $dist = Join-Path $root "dist"
 $appDist = Join-Path $dist "Hoerfix"
 $payloadDir = Join-Path $root "installer\payload"
 $setupDist = Join-Path $dist "Setup"
-$setupBundleDist = Join-Path $dist "SetupBundle"
-$packagePath = Join-Path $dist "Hoerfix-win-x64.zip"
-$setupBundlePath = Join-Path $dist "Hoerfix-Setup-bundle.zip"
+$setupExePath = Join-Path $dist "Hoerfix-Setup.exe"
 
 function Invoke-Checked {
     param([scriptblock]$Command)
@@ -21,14 +19,15 @@ if (Test-Path -LiteralPath $dist) {
     Remove-Item -LiteralPath $dist -Recurse -Force
 }
 
-New-Item -ItemType Directory -Force -Path $appDist, $payloadDir, $setupDist, $setupBundleDist | Out-Null
+New-Item -ItemType Directory -Force -Path $appDist, $payloadDir, $setupDist | Out-Null
 
 Invoke-Checked {
     dotnet publish (Join-Path $root "hoerhilfe.csproj") `
         -c Release `
         -r win-x64 `
         -p:PublishSingleFile=true `
-        --self-contained false `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        --self-contained true `
         -o $appDist
 }
 
@@ -39,26 +38,16 @@ Invoke-Checked {
         -c Release `
         -r win-x64 `
         -p:PublishSingleFile=true `
-        --self-contained false `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        --self-contained true `
         -o $setupDist
 }
 
-Copy-Item -LiteralPath (Join-Path $setupDist "Hoerfix-Setup.exe") -Destination (Join-Path $dist "Hoerfix-Setup.exe") -Force
+Copy-Item -LiteralPath (Join-Path $setupDist "Hoerfix-Setup.exe") -Destination $setupExePath -Force
 
-Invoke-Checked {
-    dotnet publish (Join-Path $root "installer\Hoerfix.Setup.csproj") `
-        -c Release `
-        -r win-x64 `
-        --self-contained false `
-        -o $setupBundleDist
+if (!(Test-Path -LiteralPath $setupExePath)) {
+    throw "Setup-EXE wurde nicht erstellt: $setupExePath"
 }
 
-Copy-Item -LiteralPath (Join-Path $root "setup\Install-Hoerfix.ps1"), (Join-Path $root "setup\Uninstall-Hoerfix.ps1"), (Join-Path $root "setup\README.md") -Destination $appDist -Force
-
-Compress-Archive -Path (Join-Path $appDist "*") -DestinationPath $packagePath -Force
-Compress-Archive -Path (Join-Path $setupBundleDist "*") -DestinationPath $setupBundlePath -Force
-
 Write-Host "Release erstellt:"
-Write-Host "  $($dist)\Hoerfix-Setup.exe"
-Write-Host "  $setupBundlePath"
-Write-Host "  $packagePath"
+Write-Host "  $setupExePath"

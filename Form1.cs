@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -16,6 +17,7 @@ public partial class Form1 : Form
     private const double WizardStartDb = -80;
     private const double WizardMaxDb = -10;
     private const double WizardStepDb = 1.5;
+    private const int WizardPromptPauseMs = 220;
 
     private static readonly int[] TestFrequencies = [250, 500, 1000, 2000, 3000, 4000, 6000, 8000];
     private static readonly string ProfileDirectory = Path.Combine(
@@ -42,6 +44,7 @@ public partial class Form1 : Form
     private readonly Button _wizardHeardButton = new();
     private readonly Button _wizardStopButton = new();
     private readonly System.Windows.Forms.Timer _wizardTimer = new() { Interval = 260 };
+    private readonly System.Windows.Forms.Timer _wizardPromptTimer = new();
     private readonly ComboBox _sourceModeCombo = CreateComboBox();
     private readonly ComboBox _sourceDeviceCombo = CreateComboBox();
     private readonly ComboBox _outputDeviceCombo = CreateComboBox();
@@ -69,6 +72,7 @@ public partial class Form1 : Form
     private int _wizardEarIndex;
     private double _wizardLevelDb = WizardStartDb;
     private bool _wizardRunning;
+    private bool _wizardPromptActive;
     private bool _loadingProfiles;
     private string _currentProfileName = DefaultProfileName;
     private bool _darkMode;
@@ -91,6 +95,7 @@ public partial class Form1 : Form
         Icon = LoadAppIcon();
         KeyDown += FormKeyDown;
         _wizardTimer.Tick += WizardTimerTick;
+        _wizardPromptTimer.Tick += WizardPromptTimerTick;
         Resize += FormResize;
 
         _curvePanel = new CurvePanel(_bands);
@@ -821,26 +826,62 @@ public partial class Form1 : Form
 
     private void StartWizardTone(AudioDeviceItem output)
     {
+        _wizardTimer.Stop();
+        _wizardPromptTimer.Stop();
         StopTone();
         _wizardLevelDb = WizardStartDb;
+        var promptSamples = CreateWizardPromptSamples(WizardEarPromptText(), _wizardEarIndex);
         _wizardToneProvider = new WizardToneSampleProvider(
             TestFrequencies[_wizardFrequencyIndex],
             DbToGain(_wizardLevelDb),
-            _wizardEarIndex);
+            _wizardEarIndex,
+            promptSamples);
         _toneOut = new WasapiOut(output.Device, AudioClientShareMode.Shared, false, 90);
         _toneOut.Init(_wizardToneProvider.ToWaveProvider());
         _toneOut.Play();
-        _wizardTimer.Start();
+        StartWizardLevelRamp(_wizardToneProvider.PromptDurationMs);
         UpdateWizardLabels();
     }
 
     private void StopWizard()
     {
         _wizardTimer.Stop();
+        _wizardPromptTimer.Stop();
         _wizardRunning = false;
+        _wizardPromptActive = false;
         _wizardToneProvider = null;
         StopTone();
         SetWizardButtons(false);
+        UpdateWizardLabels();
+    }
+
+    private void StartWizardLevelRamp(int promptDurationMs)
+    {
+        if (promptDurationMs <= 0)
+        {
+            _wizardPromptActive = false;
+            _wizardTimer.Start();
+            UpdateUiState();
+            return;
+        }
+
+        _wizardPromptActive = true;
+        _wizardPromptTimer.Interval = Math.Max(1, promptDurationMs + WizardPromptPauseMs);
+        _wizardPromptTimer.Start();
+        UpdateUiState();
+    }
+
+    private void WizardPromptTimerTick(object? sender, EventArgs e)
+    {
+        _wizardPromptTimer.Stop();
+        if (!_wizardRunning)
+        {
+            return;
+        }
+
+        _wizardPromptActive = false;
+        _wizardTimer.Start();
+        UpdateUiState();
         UpdateWizardLabels();
     }
 
@@ -863,7 +904,7 @@ public partial class Form1 : Form
 
     private void MarkWizardFrequencyHeard(bool autoAtMaximum = false)
     {
-        if (!_wizardRunning)
+        if (!_wizardRunning || _wizardPromptActive)
         {
             return;
         }
@@ -932,7 +973,9 @@ public partial class Form1 : Form
 
         if (_wizardRunning)
         {
-            _wizardHintLabel.Text = $"Ton nur {WizardEarName().ToLowerInvariant()}. Wenn du ihn hoerst: Space druecken.";
+            _wizardHintLabel.Text = _wizardPromptActive
+                ? $"Ansage nur {WizardEarName().ToLowerInvariant()}. Danach startet der Messton."
+                : $"Ton nur {WizardEarName().ToLowerInvariant()}. Wenn du ihn hoerst: Space druecken.";
         }
     }
 
@@ -950,6 +993,8 @@ public partial class Form1 : Form
 
     private string WizardEarName() => _wizardEarIndex == 0 ? "Links" : "Rechts";
 
+    private string WizardEarPromptText() => _wizardEarIndex == 0 ? "Linkes Ohr start." : "Rechtes Ohr start.";
+
     private void SetWizardButtons(bool running)
     {
         UpdateUiState();
@@ -962,7 +1007,7 @@ public partial class Form1 : Form
         var busy = _wizardRunning || _supportRunning;
 
         _wizardStartButton.Enabled = !_wizardRunning && !_supportRunning && hasOutput;
-        _wizardHeardButton.Enabled = _wizardRunning;
+        _wizardHeardButton.Enabled = _wizardRunning && !_wizardPromptActive;
         _wizardStopButton.Enabled = _wizardRunning;
 
         _toggleSupportButton.Enabled = !_wizardRunning && hasSource && hasOutput;
@@ -1049,6 +1094,207 @@ public partial class Form1 : Form
         {
             StopTone();
             MessageBox.Show($"Ausgabe-Testton konnte nicht gestartet werden:\r\n{ex.Message}", "Hoerhilfe", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private static float[] CreateWizardPromptSamples(string text, int targetChannel)
+    {
+        var promptPath = Path.Combine(ProfileDirectory, $"wizard-prompt-{targetChannel}.wav");
+        try
+        {
+            if (!File.Exists(promptPath) && !TryWriteSpeechPrompt(promptPath, text))
+            {
+                return CreateEarStartChimeSamples(targetChannel);
+            }
+
+            var speechSamples = ReadPromptSamples(promptPath, targetChannel);
+            return speechSamples.Length > 0 ? speechSamples : CreateEarStartChimeSamples(targetChannel);
+        }
+        catch
+        {
+            return CreateEarStartChimeSamples(targetChannel);
+        }
+    }
+
+    private static bool TryWriteSpeechPrompt(string promptPath, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
+        var tempPath = promptPath + ".tmp.wav";
+        object? voice = null;
+        object? stream = null;
+        object? format = null;
+
+        try
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+
+            var voiceType = Type.GetTypeFromProgID("SAPI.SpVoice");
+            var streamType = Type.GetTypeFromProgID("SAPI.SpFileStream");
+            var formatType = Type.GetTypeFromProgID("SAPI.SpAudioFormat");
+            if (voiceType is null || streamType is null || formatType is null)
+            {
+                return false;
+            }
+
+            voice = Activator.CreateInstance(voiceType);
+            stream = Activator.CreateInstance(streamType);
+            format = Activator.CreateInstance(formatType);
+            if (voice is null || stream is null || format is null)
+            {
+                return false;
+            }
+
+            dynamic sapiVoice = voice;
+            dynamic sapiStream = stream;
+            dynamic sapiFormat = format;
+            sapiFormat.Type = 39;
+            sapiStream.Format = sapiFormat;
+            sapiStream.Open(tempPath, 3, false);
+            sapiVoice.AudioOutputStream = sapiStream;
+            sapiVoice.Rate = 0;
+            sapiVoice.Volume = 90;
+            sapiVoice.Speak(text, 3);
+            sapiVoice.WaitUntilDone(10000);
+            sapiStream.Close();
+
+            if (File.Exists(promptPath))
+            {
+                File.Delete(promptPath);
+            }
+
+            File.Move(tempPath, promptPath);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            TryCloseSpeechStream(stream);
+            ReleaseComObject(format);
+            ReleaseComObject(stream);
+            ReleaseComObject(voice);
+        }
+    }
+
+    private static float[] ReadPromptSamples(string promptPath, int targetChannel)
+    {
+        using var reader = new AudioFileReader(promptPath);
+        ISampleProvider provider = reader;
+        if (reader.WaveFormat.SampleRate != 44100)
+        {
+            provider = new WdlResamplingSampleProvider(provider, 44100);
+        }
+
+        var sourceChannels = provider.WaveFormat.Channels;
+        var sourceBuffer = new float[sourceChannels * 1024];
+        var promptSamples = new List<float>();
+        var maxFrames = provider.WaveFormat.SampleRate * 3;
+        var framesRead = 0;
+
+        while (framesRead < maxFrames)
+        {
+            var read = provider.Read(sourceBuffer, 0, sourceBuffer.Length);
+            if (read == 0)
+            {
+                break;
+            }
+
+            var sourceFrames = read / sourceChannels;
+            for (var frame = 0; frame < sourceFrames && framesRead < maxFrames; frame++, framesRead++)
+            {
+                var sourceOffset = frame * sourceChannels;
+                var monoSample = sourceBuffer[sourceOffset];
+                if (sourceChannels > 1)
+                {
+                    monoSample = (sourceBuffer[sourceOffset] + sourceBuffer[sourceOffset + 1]) * 0.5f;
+                }
+
+                monoSample = Math.Clamp(monoSample * 0.85f, -0.85f, 0.85f);
+                promptSamples.Add(targetChannel == 0 ? monoSample : 0f);
+                promptSamples.Add(targetChannel == 1 ? monoSample : 0f);
+            }
+        }
+
+        var silenceSamples = provider.WaveFormat.SampleRate / 8 * 2;
+        for (var i = 0; i < silenceSamples; i++)
+        {
+            promptSamples.Add(0f);
+        }
+
+        return promptSamples.ToArray();
+    }
+
+    private static float[] CreateEarStartChimeSamples(int targetChannel)
+    {
+        const int sampleRate = 44100;
+        var promptSamples = new List<float>();
+        var frequencies = targetChannel == 0
+            ? new[] { 520.0, 660.0, 780.0 }
+            : new[] { 780.0, 660.0, 520.0 };
+        var toneFrames = sampleRate / 7;
+        var gapFrames = sampleRate / 22;
+
+        foreach (var frequency in frequencies)
+        {
+            for (var frame = 0; frame < toneFrames; frame++)
+            {
+                var envelope = ChimeEnvelope(frame, toneFrames);
+                var sample = (float)(Math.Sin(2 * Math.PI * frequency * frame / sampleRate) * 0.23 * envelope);
+                promptSamples.Add(targetChannel == 0 ? sample : 0f);
+                promptSamples.Add(targetChannel == 1 ? sample : 0f);
+            }
+
+            for (var frame = 0; frame < gapFrames; frame++)
+            {
+                promptSamples.Add(0f);
+                promptSamples.Add(0f);
+            }
+        }
+
+        var silenceSamples = sampleRate / 8 * 2;
+        for (var i = 0; i < silenceSamples; i++)
+        {
+            promptSamples.Add(0f);
+        }
+
+        return promptSamples.ToArray();
+    }
+
+    private static double ChimeEnvelope(int position, int totalFrames)
+    {
+        var rampFrames = Math.Max(1, totalFrames / 8);
+        var attack = position < rampFrames ? position / (double)rampFrames : 1.0;
+        var releasePosition = totalFrames - position - 1;
+        var release = releasePosition < rampFrames ? releasePosition / (double)rampFrames : 1.0;
+        return Math.Min(attack, release);
+    }
+
+    private static void TryCloseSpeechStream(object? stream)
+    {
+        if (stream is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ((dynamic)stream).Close();
+        }
+        catch
+        {
+        }
+    }
+
+    private static void ReleaseComObject(object? instance)
+    {
+        if (instance is not null && Marshal.IsComObject(instance))
+        {
+            Marshal.FinalReleaseComObject(instance);
         }
     }
 
@@ -1797,20 +2043,25 @@ public partial class Form1 : Form
     private sealed class WizardToneSampleProvider : ISampleProvider
     {
         private readonly WaveFormat _waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+        private readonly float[] _promptSamples;
         private readonly double _frequency;
         private readonly int _targetChannel;
         private readonly object _lock = new();
         private double _gain;
+        private int _promptPosition;
         private int _framePosition;
 
-        public WizardToneSampleProvider(double frequency, double gain, int targetChannel)
+        public WizardToneSampleProvider(double frequency, double gain, int targetChannel, float[]? promptSamples = null)
         {
             _frequency = frequency;
             _gain = gain;
             _targetChannel = targetChannel;
+            _promptSamples = promptSamples ?? [];
         }
 
         public WaveFormat WaveFormat => _waveFormat;
+
+        public int PromptDurationMs => (int)Math.Ceiling(_promptSamples.Length / (double)_waveFormat.Channels / _waveFormat.SampleRate * 1000);
 
         public void SetLevel(double gain)
         {
@@ -1822,8 +2073,13 @@ public partial class Form1 : Form
 
         public int Read(float[] buffer, int offset, int count)
         {
-            var framesRequested = count / _waveFormat.Channels;
             var written = 0;
+            while (written < count && _promptPosition < _promptSamples.Length)
+            {
+                buffer[offset + written++] = _promptSamples[_promptPosition++];
+            }
+
+            var framesRequested = (count - written) / _waveFormat.Channels;
             for (var frame = 0; frame < framesRequested; frame++)
             {
                 double gain;
