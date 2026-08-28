@@ -6,9 +6,9 @@
     <AssemblyName>Hoerfix</AssemblyName>
     <Product>Hoerfix</Product>
     <Description>Windows hearing support tool with per-ear profiles and system audio equalization.</Description>
-    <Version>0.1.6</Version>
-    <FileVersion>0.1.6.0</FileVersion>
-    <AssemblyVersion>0.1.6.0</AssemblyVersion>
+    <Version>0.1.7</Version>
+    <FileVersion>0.1.7.0</FileVersion>
+    <AssemblyVersion>0.1.7.0</AssemblyVersion>
     <ApplicationIcon>assets\hoerfix.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>

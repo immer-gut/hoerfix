@@ -32,4 +32,5 @@ dist\Hoerfix-Setup.exe
 The setup is a self-contained Windows installer. It installs Hoerfix for the
 current Windows user, creates Start menu/Desktop shortcuts, registers an
 uninstall entry under Windows "Installierte Apps", and can update an existing
-per-user installation.
+per-user installation. The setup window uses a larger fixed layout so the
+instruction text remains visible for non-technical users.

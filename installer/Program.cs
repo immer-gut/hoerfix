@@ -107,30 +107,35 @@ internal static class Program
         {
             Text = "Desktop-Verknuepfung erstellen",
             Checked = true,
-            Dock = DockStyle.Top,
-            Height = 32
+            AutoSize = true,
+            Dock = DockStyle.Left,
+            Margin = new Padding(0, 0, 0, 6)
         };
 
         private readonly CheckBox _launchAfterInstall = new()
         {
             Text = "Hoerfix nach der Installation starten",
             Checked = true,
-            Dock = DockStyle.Top,
-            Height = 32
+            AutoSize = true,
+            Dock = DockStyle.Left,
+            Margin = new Padding(0, 0, 0, 10)
         };
 
         private readonly Label _status = new()
         {
-            Text = "Hoerfix wird fuer diesen Windows-Benutzer installiert. Administratorrechte sind nicht noetig.",
+            Text = "Hoerfix wird auf diesem PC fuer den aktuellen Benutzer installiert. Sie brauchen keine Administratorrechte.",
             Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleLeft
+            AutoSize = false,
+            TextAlign = ContentAlignment.TopLeft,
+            Margin = new Padding(0, 8, 0, 0)
         };
 
         private readonly Button _install = new()
         {
             Text = "Installieren",
-            Dock = DockStyle.Right,
-            Width = 120
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Width = 128,
+            Height = 34
         };
 
         public SetupForm()
@@ -140,46 +145,60 @@ internal static class Program
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            ClientSize = new Size(460, 190);
+            ClientSize = new Size(560, 260);
             Font = new Font("Segoe UI", 9F);
+            Padding = new Padding(18, 16, 18, 14);
 
             var title = new Label
             {
                 Text = "Hoerfix installieren oder aktualisieren",
                 Dock = DockStyle.Top,
-                Height = 44,
-                Font = new Font(Font.FontFamily, 14F, FontStyle.Bold)
+                Height = 40,
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font(Font.FontFamily, 14F, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 8)
             };
 
-            var buttons = new Panel
+            var buttons = new FlowLayoutPanel
             {
                 Dock = DockStyle.Bottom,
-                Height = 46,
-                Padding = new Padding(0, 8, 0, 0)
+                Height = 52,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                Padding = new Padding(0, 10, 0, 0)
             };
             var cancel = new Button
             {
                 Text = "Abbrechen",
-                Dock = DockStyle.Right,
-                Width = 120
+                Width = 128,
+                Height = 34,
+                Margin = new Padding(6, 0, 0, 0)
             };
             cancel.Click += (_, _) => Close();
             _install.Click += (_, _) => Install();
             buttons.Controls.Add(_install);
             buttons.Controls.Add(cancel);
 
-            var body = new Panel
+            var body = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(14)
+                ColumnCount = 1,
+                RowCount = 3,
+                Padding = new Padding(0, 12, 0, 8)
             };
-            body.Controls.Add(_status);
-            body.Controls.Add(_launchAfterInstall);
-            body.Controls.Add(_desktopShortcut);
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            body.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            body.Controls.Add(_desktopShortcut, 0, 0);
+            body.Controls.Add(_launchAfterInstall, 0, 1);
+            body.Controls.Add(_status, 0, 2);
 
             Controls.Add(body);
             Controls.Add(buttons);
             Controls.Add(title);
+            AcceptButton = _install;
+            CancelButton = cancel;
         }
 
         private void Install()

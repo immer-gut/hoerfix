@@ -41,6 +41,7 @@ Manueller Setup-Check:
 3. Erwartung: Hoerfix liegt unter `%LOCALAPPDATA%\Programs\Hoerfix`.
 4. Erwartung: Startmenue-Verknuepfung ist vorhanden.
 5. Erwartung: Hoerfix erscheint unter Windows `Installierte Apps` und kann dort entfernt werden.
+6. Erwartung: Im Setup-Fenster sind Titel, Checkboxen, Hinweistext und Buttons vollstaendig sichtbar.
 
 ## Manueller Systemton-Check
 
